@@ -1,0 +1,5 @@
+flask==1.1.2
+pandas==1.2.4
+scikit-learn==0.24.2
+ibm-cos-sdk==2.10.0
+cloudant==2.14.0
