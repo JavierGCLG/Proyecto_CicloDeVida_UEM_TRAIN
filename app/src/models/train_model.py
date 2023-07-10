@@ -1,15 +1,14 @@
-from ..data.make_dataset import make_dataset
-from ..evaluation.evaluate_model import evaluate_model
-from ..utils.utils import SerializableModel
+from app.src.data.train.make_dataset import make_dataset
+from app.src.evaluation.evaluate_model import evaluate_model
+from app.src.utils.utils import load_model_config
 from app import ROOT_DIR
 from sklearn.ensemble import RandomForestClassifier
 import time
-from yaml import safe_load
 import mlflow
 from app import ROOT_DIR
 
 
-def training_pipeline(path, model_info_db_name="models-db"):
+def training_pipeline(path):
     """
     Función para gestionar el pipeline completo de entrenamiento
     del modelo.
@@ -33,7 +32,7 @@ def training_pipeline(path, model_info_db_name="models-db"):
     ts = time.time()
 
     # carga y transformación de los datos de train y test
-    train_df, test_df = make_dataset(path, ts, target, cols_to_remove)
+    train_df, test_df = make_dataset(path, target, cols_to_remove)
 
     # separación de variables independientes y dependiente
     y_train = train_df[target]
@@ -60,9 +59,9 @@ def training_pipeline(path, model_info_db_name="models-db"):
         mlflow.log_param("target", target)
         mlflow.log_param("cols_to_remove", cols_to_remove)
         evaluate_model(model, X_test, y_test, ts, model_config["model_name"])
-        # guardado del modelo en IBM COS
+        # guardado del modelo y artifacts en MLFlow
         print(
-            f"------> Saving the model {model_config['model_name']}_{str(ts)} in MLFlow"
+            f"------> Saving the model {model_config['model_name']}_{str(ts)} and artifacts in MLFlow"
         )
         save_model(model)
 
@@ -77,28 +76,11 @@ def save_model(model):
 
     mlflow.log_artifact(
         f"{ROOT_DIR}/models/objects/encoded_columns.pkl",
-    )
-    mlflow.log_artifact(
-        f"{ROOT_DIR}/models/objects/imputer.pkl",
-    )
-
-    mlflow.pyfunc.log_model(
         artifact_path="model",
-        python_model=SerializableModel(
-            model=model,
-        ),
     )
+    mlflow.log_artifact(f"{ROOT_DIR}/models/objects/imputer.pkl", artifact_path="model")
 
-
-def load_model_config(path="models/config/model_config.yaml"):
-    """
-    Función para cargar la info del modelo desde IBM Cloudant.
-
-    Args:
-        db_name (str):  Nombre de la base de datos.
-
-    Returns:
-        dict. Documento con la configuración del modelo.
-    """
-    with open(f"{ROOT_DIR}/{path}", "r") as stream:
-        return safe_load(stream)
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path="model",
+    )

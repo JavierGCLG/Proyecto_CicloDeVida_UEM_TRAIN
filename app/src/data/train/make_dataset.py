@@ -2,19 +2,17 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
-from ..features.feature_engineering import feature_engineering
-from ..utils.utils import save_object_locally
+from app.src.features.feature_engineering import feature_engineering
+from app.src.utils.utils import save_object_locally
 
 
-def make_dataset(path, timestamp, target, cols_to_remove, model_type="RandomForest"):
-
+def make_dataset(path, target, cols_to_remove, model_type="RandomForest"):
     """
     Función que permite crear el dataset usado para el entrenamiento
     del modelo.
 
     Args:
        path (str):  Ruta hacia los datos.
-       timestamp (float):  Representación temporal en segundos.
        target (str):  Variable dependiente a usar.
 
     Kwargs:
@@ -29,15 +27,13 @@ def make_dataset(path, timestamp, target, cols_to_remove, model_type="RandomFore
     print("---> Train / test split")
     train_df, test_df = train_test_split(df, test_size=0.2, random_state=50)
     print("---> Transforming data")
-    train_df, test_df = transform_data(
-        train_df, test_df, timestamp, target, cols_to_remove
-    )
+    train_df, test_df = transform_data(train_df, test_df, target, cols_to_remove)
     print("---> Feature engineering")
-    train_df, test_df = feature_engineering(train_df, test_df)
+    train_df = feature_engineering(train_df)
+    test_df = feature_engineering(test_df)
+
     print("---> Preparing data for training")
-    train_df, test_df = pre_train_data_prep(
-        train_df, test_df, model_type, timestamp, target
-    )
+    train_df, test_df = pre_train_data_prep(train_df, test_df, model_type, target)
 
     return train_df.copy(), test_df.copy()
 
@@ -58,7 +54,7 @@ def get_raw_data_from_local(path):
     return df.copy()
 
 
-def transform_data(train_df, test_df, timestamp, target, cols_to_remove):
+def transform_data(train_df, test_df, target, cols_to_remove):
 
     """
     Función que permite realizar las primeras tareas de transformación
@@ -67,7 +63,6 @@ def transform_data(train_df, test_df, timestamp, target, cols_to_remove):
     Args:
        train_df (DataFrame):  Dataset de train.
        test_df (DataFrame):  Dataset de test.
-       timestamp (float):  Representación temporal en segundos.
        target (str):  Variable dependiente a usar.
        cols_to_remove (list): Columnas a retirar.
 
@@ -102,7 +97,7 @@ def transform_data(train_df, test_df, timestamp, target, cols_to_remove):
     # alineación de train y test para tener las mismas columnas
     train_df, test_df = train_df.align(test_df, join="inner", axis=1)
 
-    # guardando las columnas resultantes en IBM COS
+    # guardando las columnas resultantes en ruta local
     print("---------> Saving encoded columns")
     save_object_locally(train_df.columns, "encoded_columns")
 
@@ -117,7 +112,7 @@ def transform_data(train_df, test_df, timestamp, target, cols_to_remove):
     return train_df.copy(), test_df.copy()
 
 
-def pre_train_data_prep(train_df, test_df, model_type, timestamp, target):
+def pre_train_data_prep(train_df, test_df, model_type, target):
     """
     Función que realiza las últimas transformaciones sobre los datos
     antes del entrenamiento (imputación de nulos y escalado)
@@ -126,7 +121,6 @@ def pre_train_data_prep(train_df, test_df, model_type, timestamp, target):
        train_df (DataFrame):  Dataset de train.
        test_df (DataFrame):  Dataset de test.
        model_type (str):  Tipo de modelo a usar.
-       timestamp (float):  Representación temporal en segundos
        target (str):  Variable dependiente a usar.
 
     Returns:
@@ -141,7 +135,7 @@ def pre_train_data_prep(train_df, test_df, model_type, timestamp, target):
 
     # imputación de nulos
     print("------> Inputing missing values")
-    train_df, test_df = input_missing_values(train_df, test_df, timestamp)
+    train_df, test_df = input_missing_values(train_df, test_df)
 
     # restringimos el escalado solo a ciertos modelos
     if model_type.upper() in ["SVM", "KNN", "NaiveBayes"]:
@@ -159,14 +153,13 @@ def pre_train_data_prep(train_df, test_df, model_type, timestamp, target):
     return train_df.copy(), test_df.copy()
 
 
-def input_missing_values(train_df, test_df, timestamp):
+def input_missing_values(train_df, test_df):
     """
     Función para la imputación de nulos
 
     Args:
        train_df (DataFrame):  Dataset de train.
        test_df (DataFrame):  Dataset de test.
-       timestamp (float):  Representación temporal en segundos.
 
     Returns:
        DataFrame, DataFrame. Datasets de train y test para el modelo.
@@ -180,7 +173,7 @@ def input_missing_values(train_df, test_df, timestamp):
     test_df = pd.DataFrame(imputer.transform(test_df), columns=test_df.columns)
 
     # guardamos el imputador para futuros nuevos datos
-    print("------> Saving imputer on the cloud")
+    print("------> Saving imputer locally ")
     save_object_locally(imputer, "imputer")
 
     return train_df.copy(), test_df.copy()
