@@ -36,13 +36,12 @@ def evaluate_model(model, X_test, y_test, timestamp, model_name):
     # creación del diccionario de info del modelo
     # fi_df = pd.DataFrame({'feature': features, 'importance': feature_importance_values})
 
+    # Se loguean los tags asociados al modelo en MLFlow
     # info general del modelo
     mlflow.set_tag("_id", "model_" + str(int(timestamp)))
     mlflow.set_tag("model_name", model_name)
-    # objectos usados en el modelo (encoders, imputer)
-    mlflow.set_tag("encoders", "encoded_columns_" + str(int(timestamp)))
-    mlflow.set_tag("imputer", "imputer_" + str(int(timestamp)))
-    # métricas usadas
+
+    # # Se loguean las métricas asociadas al modelo en MLFlow
     # model_info['model_metrics']['feature_importances'] = dict(zip(fi_df.area, fi_df.importance))
     mlflow.log_metric("accuracy_score", accuracy_score(y_test, y_pred))
     mlflow.log_metric("precision_score", precision_score(y_test, y_pred))

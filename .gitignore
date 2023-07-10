@@ -1,7 +1,7 @@
 venv
 .idea
 **/__pycache__/*
-models
+app/models/objects
 mlruns
 .DS_Store
 

@@ -49,11 +49,12 @@ def training_pipeline(path):
     )
 
     print("---> Training a model with the following configuration:")
-    print(model_config)
+    # Se inicia el RUN (ejecución del entrenamiento de un modelo)
     with mlflow.start_run(run_name=f"{model_config['model_name']}_{str(ts)}") as run:
         # Ajuste del modelo con los datos de entrenamiento
         model.fit(X_train, y_train)
         print("------> Logging metadata in MLFlow")
+        # se loguean los parámetros del modelo
         mlflow.log_param("n_estimators", model_config["n_estimators"])
         mlflow.log_param("max_features", model_config["max_features"])
         mlflow.log_param("target", target)
