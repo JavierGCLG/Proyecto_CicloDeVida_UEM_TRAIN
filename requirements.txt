@@ -3,4 +3,4 @@ pandas
 scikit-learn
 urllib3<2
 mlflow
-yaml
+PyYAML
